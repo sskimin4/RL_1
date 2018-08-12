@@ -17,21 +17,33 @@ arrow_keys = {
     '\x1b[D' : LEFT
 }
 init(autoreset=True)
-reward = [[0.00] * 4 for _ in range(4)]
-reward[1][1] = -3.0
-reward[1][3] = -3.0
-reward[2][3] = -3.0
-reward[3][0] = -3.0
-reward[3][3] = 6.0
+register(
+    id='FrozenLake-v3',
+    entry_point='gym.envs.toy_text:FrozenLakeEnv',
+    kwargs={'map_name' : '4x4', 'is_slippery': False}
+)
+
+env = gym.make('FrozenLake-v3')
+env.render()
+
+reward = [[0.00] * env.nrow for _ in range(env.ncol)]
+for row in range(env.nrow):
+    for col in range(env.ncol):
+        if env.desc[row][col] == b'H':
+            reward[row][col]=-2.0
+        elif env.desc[row][col] == b'G':
+            reward[row][col]=4.0
 class PolicyIteration:
     def __init__(self, env):
         # 환경에 대한 객체 선언
+        self.nrow=env.nrow
+        self.ncol=env.ncol
         self.env = env
         # 가치함수를 2차원 리스트로 초기화
-        self.value_table = [[0.00] * 4 for _ in range(4)]
+        self.value_table = [[0.00] *self.nrow for _ in range(self.ncol)]
         # 상 하 좌 우 동일한 확률로 정책 초기화
-        self.policy_table = [[[0.25, 0.25, 0.25, 0.25]]*4 for _ in range(4)]
-        
+        self.policy_table = [[[0.25, 0.25, 0.25, 0.25]]*self.nrow for _ in range(self.ncol)]
+
         # 마침 상태의 설정
         # 감가율
         self.discount_factor = 0.7
@@ -39,15 +51,14 @@ class PolicyIteration:
     def policy_evaluation(self):
 
         # 다음 가치함수 초기화
-        next_value_table = [[0.00] * 4
-                                    for _ in range(4)]
+        next_value_table = [[0.00] * self.nrow
+                                    for _ in range(self.ncol)]
 
         # 모든 상태에 대해서 벨만 기대방정식을 계산
         for state in self.get_all_states():
             value = 0.0
             # 마침 상태의 가치 함수 = 0
-            if state == [3, 3]:
-                #next_value_table[state[0]][state[1]] = value
+            if state == [self.nrow-1, self.ncol-1]:
                 continue
 
             # 벨만 기대 방정식
@@ -65,7 +76,7 @@ class PolicyIteration:
     def policy_improvement(self):
         next_policy = self.policy_table
         for state in self.get_all_states():
-            if state == [3, 3]:
+            if state == [self.nrow-1, self.ncol-1]:
                 continue
             value = -99999
             max_index = []
@@ -112,7 +123,7 @@ class PolicyIteration:
 
     # 상태에 따른 정책 반환
     def get_policy(self, state):
-        if state == [3, 3]:
+        if state == [self.nrow-1, self.ncol-1]:
             return 0.0
         return self.policy_table[state[0]][state[1]]
 
@@ -121,7 +132,12 @@ class PolicyIteration:
         # 소숫점 둘째 자리까지만 계산
         return round(self.value_table[state[0]][state[1]], 2)
     def get_all_states(self):
-        return [[0,0], [0,1], [0,2], [0,3],[1,0], [1,1], [1,2], [1,3],[2,0], [2,1], [2,2], [2,3],[3,0], [3,1], [3,2], [3,3]]
+        all_state=[]
+        for x in range(self.nrow):
+            for y in range(self.ncol):
+                st = [x, y]
+                all_state.append(st)
+        return all_state
     def state_after_action(self,state, action):
         row = state[0]
         col = state[1]
@@ -137,22 +153,14 @@ class PolicyIteration:
     def get_reward(self,state, action):
         next_state = self.state_after_action(state, action)
         return reward[next_state[0]][next_state[1]]
-        
-register(
-    id='FrozenLake-v3',
-    entry_point='gym.envs.toy_text:FrozenLakeEnv',
-    kwargs={'map_name' : '4x4', 'is_slippery': False}
-)
 
-env = gym.make('FrozenLake-v3')
-env.render()
 policy_iteration = PolicyIteration(env)
 policy_iteration.__init__(env)
 
 for _ in range(5):
     policy_iteration.policy_evaluation()
     policy_iteration.policy_improvement()
-for _ in range(2):
+for _ in range(1):
     state_=[0, 0]
     env.reset()
     while True:
@@ -164,5 +172,3 @@ for _ in range(2):
         if done:
             print("Finished with reward", r)
             break
-
-    
