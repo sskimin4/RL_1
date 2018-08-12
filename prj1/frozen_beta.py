@@ -144,9 +144,9 @@ class PolicyIteration:
         if action == 0: #LEFT
             col = max(col - 1, 0)
         elif action == 1: # down
-            row = min(row+1, 3)
+            row = min(row+1, self.nrow-1)
         elif action == 2: # right
-            col = min(col + 1, 3)
+            col = min(col + 1, self.ncol-1)
         elif action == 3: # up
             row = max(row - 1, 0)
         return (int(row), int(col))
